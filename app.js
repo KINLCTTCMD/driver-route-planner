@@ -1,4 +1,24 @@
 // ----------------------
+// Map Initialization
+// ----------------------
+let map = L.map('map').setView([28.630501, -81.459345], 12); // default center
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+let markers = [];
+let routeLine = null;
+
+function clearMap() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  if (routeLine) {
+    map.removeLayer(routeLine);
+    routeLine = null;
+  }
+}
+
+// ----------------------
 // Tab switching
 // ----------------------
 function showTab(tab) {
@@ -10,7 +30,9 @@ function showTab(tab) {
 // Route Planner
 // ----------------------
 async function calculateRoute() {
-  const start = document.getElementById('startPoint').value.split(',');
+  clearMap();
+
+  const start = document.getElementById('startPoint').value.split(',').map(Number);
   const dest = document.getElementById('destination').value;
 
   if (!dest) {
@@ -19,6 +41,7 @@ async function calculateRoute() {
   }
 
   try {
+    // Geocode destination
     const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`);
     const geoData = await geoRes.json();
 
@@ -27,9 +50,11 @@ async function calculateRoute() {
       return;
     }
 
-    const destCoords = [geoData[0].lon, geoData[0].lat];
+    const destCoords = [parseFloat(geoData[0].lat), parseFloat(geoData[0].lon)];
+
+    // OSRM route
     const avoidTolls = document.getElementById('avoidTolls').checked;
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${destCoords[0]},${destCoords[1]}?overview=false${avoidTolls ? '&exclude=toll' : ''}`;
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${destCoords[1]},${destCoords[0]}?overview=full${avoidTolls ? '&exclude=toll' : ''}`;
     const routeRes = await fetch(osrmUrl);
     const routeData = await routeRes.json();
 
@@ -44,6 +69,17 @@ async function calculateRoute() {
 
     document.getElementById('routeResult').innerText = `Fastest route: ${distance} km, approx. ${duration} minutes.`;
 
+    // Draw route on map
+    const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+    routeLine = L.polyline(coords, {color: 'blue'}).addTo(map);
+
+    // Add markers
+    const startMarker = L.marker([start[0], start[1]]).addTo(map).bindPopup("Start").openPopup();
+    const destMarker = L.marker(destCoords).addTo(map).bindPopup("Destination");
+    markers.push(startMarker, destMarker);
+
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
+
   } catch (error) {
     console.error(error);
     document.getElementById('routeResult').innerText = "Error calculating route.";
@@ -51,9 +87,11 @@ async function calculateRoute() {
 }
 
 // ----------------------
-// Sales Planner with address + distance
+// Sales Planner
 // ----------------------
 async function findSales() {
+  clearMap();
+
   const type = document.getElementById('salesType').value;
   const city = document.getElementById('city').value;
 
@@ -73,7 +111,6 @@ async function findSales() {
     const cityLat = parseFloat(geoData[0].lat);
     const cityLon = parseFloat(geoData[0].lon);
 
-    // Build Overpass query
     let overpassQuery = '';
     let maxResults = 0;
 
@@ -113,24 +150,33 @@ async function findSales() {
       return {name, addr, lat, lon};
     }).filter(s => s.lat && s.lon).slice(0, maxResults);
 
-    // Nearest-neighbor ordering from start
-    const start = document.getElementById('startPoint').value.split(',').map(Number);
-    let current = {lat: start[0], lon: start[1]};
+    // Nearest-neighbor ordering
+    const startCoords = document.getElementById('startPoint').value.split(',').map(Number);
+    let current = {lat: startCoords[0], lon: startCoords[1]};
     let remaining = [...stops];
     let ordered = [];
 
     while (remaining.length > 0) {
-      remaining.sort((a, b) => distanceBetween(current, a) - distanceBetween(current, b));
+      remaining.sort((a,b) => distanceBetween(current,a) - distanceBetween(current,b));
       const next = remaining.shift();
-      next.distFromStart = distanceBetween({lat: start[0], lon: start[1]}, next).toFixed(1);
+      next.distFromStart = distanceBetween({lat: startCoords[0], lon: startCoords[1]}, next).toFixed(1);
       ordered.push(next);
       current = next;
     }
 
-    // Display results
+    // Display results and add markers
     document.getElementById('salesResults').innerHTML = ordered.map((s,i) => {
+      const marker = L.marker([s.lat, s.lon]).addTo(map)
+        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`);
+      markers.push(marker);
       return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`;
     }).join('<br>');
+
+    // Add starting location marker
+    const startMarker = L.marker([startCoords[0], startCoords[1]]).addTo(map).bindPopup("Start").openPopup();
+    markers.push(startMarker);
+
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
 
   } catch (error) {
     console.error(error);
