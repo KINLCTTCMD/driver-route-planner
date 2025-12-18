@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Route Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Driver Route Planner</h1>
 
+    <div class="tabs">
+      <button onclick="showTab('route')">Route Planner</button>
+      <button onclick="showTab('sales')">Sales Planner</button>
+    </div>
+
+    <div id="route" class="tab">
+      <h2>Fastest Route</h2>
+
+      <label>Starting Location</label>
+      <select id="startPoint">
+        <option value="28.8025,-81.6445">Home Base</option>
+        <option value="28.7200,-81.7200">Alternate Location</option>
+      </select>
+
+      <label>Destination Address</label>
+      <input id="destination" placeholder="Paste address here">
+
+      <label>
+        <input type="checkbox" id="avoidTolls">
+        Avoid Tolls
+      </label>
+
+      <button onclick="calculateRoute()">Get Route</button>
+
+      <div id="routeResult"></div>
+    </div>
+
+    <div id="sales" class="tab hidden">
+      <h2>Sales Suggestions</h2>
+
+      <select id="salesType">
+        <option value="coffee">Coffee</option>
+        <option value="ice">Shaved Ice</option>
+      </select>
+
+      <input id="city" placeholder="City or Zip Code">
+
+      <button onclick="findSales()">Find Locations</button
