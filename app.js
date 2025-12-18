@@ -67,9 +67,9 @@ async function calculateRoute() {
 
     const route = routeData.routes[0];
     const duration = Math.round(route.duration / 60);
-    const distance = (route.distance / 1000).toFixed(1);
+    const distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1); // convert km to miles
 
-    document.getElementById('routeResult').innerText = `Fastest route: ${distance} km, approx. ${duration} minutes.`;
+    document.getElementById('routeResult').innerText = `Fastest route: ${distanceMiles} miles, approx. ${duration} minutes.`;
 
     // Draw route polyline
     const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
@@ -165,13 +165,29 @@ async function findSales() {
       current = next;
     }
 
+    // Add distance/time from start for each stop
+    for (let i = 0; i < ordered.length; i++) {
+      const s = ordered[i];
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${s.lon},${s.lat}?overview=false`;
+      const routeRes = await fetch(osrmUrl);
+      const routeData = await routeRes.json();
+      if (routeData.routes && routeData.routes.length > 0) {
+        const route = routeData.routes[0];
+        s.distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1); // convert km to miles
+        s.durationMin = Math.round(route.duration / 60);
+      } else {
+        s.distanceMiles = '-';
+        s.durationMin = '-';
+      }
+    }
+
     // Display results and add markers
     document.getElementById('salesResults').innerHTML = ordered.map((s,i) => {
       const marker = L.marker([s.lat, s.lon], {icon: type === 'coffee' ? blueIcon() : orangeIcon()})
         .addTo(map)
-        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`);
+        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)`);
       markers.push(marker);
-      return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`;
+      return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)`;
     }).join('<br>');
 
     // Add starting location
