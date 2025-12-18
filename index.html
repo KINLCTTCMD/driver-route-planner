@@ -30,7 +30,7 @@
       <input id="destination" placeholder="Paste address here">
 
       <label>
-        <input type="checkbox" id="avoidTolls">
+        <input type="checkbox" id="avoidTollsRoute">
         Avoid Tolls
       </label>
 
@@ -59,11 +59,16 @@
       <input id="city" placeholder="City or Zip Code">
 
       <label>
-        <input type="checkbox" id="avoidTolls">
+        <input type="checkbox" id="avoidTollsSales">
         Avoid Tolls
       </label>
 
       <button onclick="findSales()">Find Locations</button>
+
+      <div>
+        <h4>Suggested Areas:</h4>
+        <div id="suggestedAreas"></div>
+      </div>
 
       <div id="salesResults"></div>
     </div>
