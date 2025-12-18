@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Driver Route Planner</title>
+
+  <!-- Your CSS -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
   <div class="container">
@@ -51,8 +56,15 @@
 
       <div id="salesResults"></div>
     </div>
+
+    <!-- Map container -->
+    <div id="map" style="height: 400px; margin-top: 20px;"></div>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Your app JS -->
   <script src="app.js"></script>
 </body>
 </html>
