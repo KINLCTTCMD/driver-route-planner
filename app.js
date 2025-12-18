@@ -8,6 +8,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let markers = [];
 let routeLine = null;
+let salesLine = null;
 
 function clearMap() {
   markers.forEach(m => map.removeLayer(m));
@@ -15,6 +16,10 @@ function clearMap() {
   if (routeLine) {
     map.removeLayer(routeLine);
     routeLine = null;
+  }
+  if (salesLine) {
+    map.removeLayer(salesLine);
+    salesLine = null;
   }
 }
 
@@ -41,7 +46,6 @@ async function calculateRoute() {
   }
 
   try {
-    // Geocode destination
     const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`);
     const geoData = await geoRes.json();
 
@@ -51,8 +55,6 @@ async function calculateRoute() {
     }
 
     const destCoords = [parseFloat(geoData[0].lat), parseFloat(geoData[0].lon)];
-
-    // OSRM route
     const avoidTolls = document.getElementById('avoidTolls').checked;
     const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${destCoords[1]},${destCoords[0]}?overview=full${avoidTolls ? '&exclude=toll' : ''}`;
     const routeRes = await fetch(osrmUrl);
@@ -69,13 +71,13 @@ async function calculateRoute() {
 
     document.getElementById('routeResult').innerText = `Fastest route: ${distance} km, approx. ${duration} minutes.`;
 
-    // Draw route on map
+    // Draw route polyline
     const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
     routeLine = L.polyline(coords, {color: 'blue'}).addTo(map);
 
     // Add markers
-    const startMarker = L.marker([start[0], start[1]]).addTo(map).bindPopup("Start").openPopup();
-    const destMarker = L.marker(destCoords).addTo(map).bindPopup("Destination");
+    const startMarker = L.marker([start[0], start[1]], {icon: greenIcon()}).addTo(map).bindPopup("Start").openPopup();
+    const destMarker = L.marker(destCoords, {icon: blueIcon()}).addTo(map).bindPopup("Destination");
     markers.push(startMarker, destMarker);
 
     map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
@@ -141,7 +143,6 @@ async function findSales() {
       return;
     }
 
-    // Map stops with name, address/description, lat/lon
     const stops = data.elements.map(el => {
       const lat = el.lat || (el.center && el.center.lat);
       const lon = el.lon || (el.center && el.center.lon);
@@ -166,15 +167,25 @@ async function findSales() {
 
     // Display results and add markers
     document.getElementById('salesResults').innerHTML = ordered.map((s,i) => {
-      const marker = L.marker([s.lat, s.lon]).addTo(map)
+      const marker = L.marker([s.lat, s.lon], {icon: type === 'coffee' ? blueIcon() : orangeIcon()})
+        .addTo(map)
         .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`);
       markers.push(marker);
       return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (Distance from start: ${s.distFromStart} km)`;
     }).join('<br>');
 
-    // Add starting location marker
-    const startMarker = L.marker([startCoords[0], startCoords[1]]).addTo(map).bindPopup("Start").openPopup();
+    // Add starting location
+    const startMarker = L.marker([startCoords[0], startCoords[1]], {icon: greenIcon()}).addTo(map).bindPopup("Start").openPopup();
     markers.push(startMarker);
+
+    // Draw polyline connecting stops
+    const polyCoords = ordered.map(s => [s.lat, s.lon]);
+    if (polyCoords.length > 0) {
+      salesLine = L.polyline([ [startCoords[0], startCoords[1]], ...polyCoords ], {
+        color: type === 'coffee' ? 'blue' : 'orange',
+        dashArray: '5,10'
+      }).addTo(map);
+    }
 
     map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
 
@@ -196,4 +207,34 @@ function distanceBetween(a,b) {
   const x = dLon * Math.cos((lat1+lat2)/2);
   const y = dLat;
   return Math.sqrt(x*x + y*y) * R;
+}
+
+// ----------------------
+// Leaflet Custom Icons
+// ----------------------
+function blueIcon() {
+  return L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+    iconSize: [32,32],
+    iconAnchor: [16,32],
+    popupAnchor: [0,-32]
+  });
+}
+
+function orangeIcon() {
+  return L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+    iconSize: [32,32],
+    iconAnchor: [16,32],
+    popupAnchor: [0,-32]
+  });
+}
+
+function greenIcon() {
+  return L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+    iconSize: [32,32],
+    iconAnchor: [16,32],
+    popupAnchor: [0,-32]
+  });
 }
