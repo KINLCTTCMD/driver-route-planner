@@ -1,7 +1,7 @@
 // ----------------------
 // Map Initialization
 // ----------------------
-let map = L.map('map').setView([28.630501, -81.459345], 12); // default center
+let map = L.map('map').setView([28.630501, -81.459345], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
@@ -10,6 +10,9 @@ let markers = [];
 let routeLine = null;
 let salesLine = null;
 
+// ----------------------
+// Clear Map
+// ----------------------
 function clearMap() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
@@ -67,15 +70,13 @@ async function calculateRoute() {
 
     const route = routeData.routes[0];
     const duration = Math.round(route.duration / 60);
-    const distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1); // convert km to miles
+    const distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1);
 
     document.getElementById('routeResult').innerText = `Fastest route: ${distanceMiles} miles, approx. ${duration} minutes.`;
 
-    // Draw route polyline
     const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
     routeLine = L.polyline(coords, {color: 'blue'}).addTo(map);
 
-    // Add markers
     const startMarker = L.marker([start[0], start[1]], {icon: greenIcon()}).addTo(map).bindPopup("Start").openPopup();
     const destMarker = L.marker(destCoords, {icon: blueIcon()}).addTo(map).bindPopup("Destination");
     markers.push(startMarker, destMarker);
@@ -89,13 +90,14 @@ async function calculateRoute() {
 }
 
 // ----------------------
-// Sales Planner
+// Sales Planner with Avoid Tolls
 // ----------------------
 async function findSales() {
   clearMap();
 
   const type = document.getElementById('salesType').value;
   const city = document.getElementById('city').value;
+  const avoidTolls = document.getElementById('avoidTolls').checked;
 
   if (!city) {
     alert('Please enter a city or zip code');
@@ -103,7 +105,6 @@ async function findSales() {
   }
 
   try {
-    // Geocode city
     const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
     const geoData = await geoRes.json();
     if (!geoData || geoData.length === 0) {
@@ -119,18 +120,16 @@ async function findSales() {
     if (type === 'coffee') {
       overpassQuery = `
         [out:json][timeout:25];
-        (
-          node["office"](around:5000,${cityLat},${cityLon});
-          way["building"="commercial"](around:5000,${cityLat},${cityLon});
-        );
-        out center 10;
+        node["office"](around:5000,${cityLat},${cityLon});
+        way["building"="commercial"](around:5000,${cityLat},${cityLon});
+        out center 20;
       `;
       maxResults = 10;
     } else {
       overpassQuery = `
         [out:json][timeout:25];
         way["landuse"="residential"](around:5000,${cityLat},${cityLon});
-        out center 3;
+        out center 10;
       `;
       maxResults = 3;
     }
@@ -151,16 +150,15 @@ async function findSales() {
       return {name, addr, lat, lon};
     }).filter(s => s.lat && s.lon).slice(0, maxResults);
 
-    // Nearest-neighbor ordering
     const startCoords = document.getElementById('startPoint').value.split(',').map(Number);
+
+    // Nearest-neighbor ordering
     let current = {lat: startCoords[0], lon: startCoords[1]};
     let remaining = [...stops];
     let ordered = [];
-
     while (remaining.length > 0) {
       remaining.sort((a,b) => distanceBetween(current,a) - distanceBetween(current,b));
       const next = remaining.shift();
-      next.distFromStart = distanceBetween({lat: startCoords[0], lon: startCoords[1]}, next).toFixed(1);
       ordered.push(next);
       current = next;
     }
@@ -168,12 +166,12 @@ async function findSales() {
     // Add distance/time from start for each stop
     for (let i = 0; i < ordered.length; i++) {
       const s = ordered[i];
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${s.lon},${s.lat}?overview=false`;
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${s.lon},${s.lat}?overview=false${avoidTolls ? '&exclude=toll' : ''}`;
       const routeRes = await fetch(osrmUrl);
       const routeData = await routeRes.json();
       if (routeData.routes && routeData.routes.length > 0) {
         const route = routeData.routes[0];
-        s.distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1); // convert km to miles
+        s.distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1);
         s.durationMin = Math.round(route.duration / 60);
       } else {
         s.distanceMiles = '-';
@@ -181,20 +179,29 @@ async function findSales() {
       }
     }
 
-    // Display results and add markers
+    // Build full route URL
+    let fullRouteUrl = `https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}`;
+    ordered.forEach((s,i) => {
+      fullRouteUrl += `&destination=${s.lat},${s.lon}`;
+    });
+
+    // Display results and markers
     document.getElementById('salesResults').innerHTML = ordered.map((s,i) => {
       const marker = L.marker([s.lat, s.lon], {icon: type === 'coffee' ? blueIcon() : orangeIcon()})
         .addTo(map)
-        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)`);
+        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)<br>
+          <a href="https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${s.lat},${s.lon}" target="_blank">Navigate</a>`);
       markers.push(marker);
-      return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)`;
+
+      return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min) - 
+        <a href="https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${s.lat},${s.lon}" target="_blank">Navigate</a>`;
     }).join('<br>');
 
-    // Add starting location
+    document.getElementById('salesResults').innerHTML += `<br><br><button onclick="window.open('${fullRouteUrl}', '_blank')">Navigate Full Route</button>`;
+
     const startMarker = L.marker([startCoords[0], startCoords[1]], {icon: greenIcon()}).addTo(map).bindPopup("Start").openPopup();
     markers.push(startMarker);
 
-    // Draw polyline connecting stops
     const polyCoords = ordered.map(s => [s.lat, s.lon]);
     if (polyCoords.length > 0) {
       salesLine = L.polyline([ [startCoords[0], startCoords[1]], ...polyCoords ], {
