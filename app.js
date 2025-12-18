@@ -50,8 +50,8 @@ async function calculateRoute() {
   }
 }
 
-// Demo Sales Planner (placeholder)
-function findSales() {
+// Sales Planner with demo locations
+async function findSales() {
   const type = document.getElementById('salesType').value;
   const city = document.getElementById('city').value;
 
@@ -60,7 +60,36 @@ function findSales() {
     return;
   }
 
-  // Demo message
-  document.getElementById('salesResults').innerText =
-    `Demo sales locations for ${type} in ${city} (real suggestions coming next).`;
-}
+  try {
+    // Geocode city to get coordinates
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
+    const geoData = await geoRes.json();
+
+    if (!geoData || geoData.length === 0) {
+      alert('City not found!');
+      return;
+    }
+
+    const cityLat = parseFloat(geoData[0].lat);
+    const cityLon = parseFloat(geoData[0].lon);
+
+    let results = [];
+
+    if (type === 'coffee') {
+      // Coffee stops demo: 10 sample points around the city
+      for (let i = 0; i < 10; i++) {
+        results.push(`Coffee Stop ${i + 1} near ${city} (demo)`);
+      }
+    } else {
+      // Shaved ice stops demo: 3 sample points around the city
+      for (let i = 0; i < 3; i++) {
+        results.push(`Shaved Ice Stop ${i + 1} in ${city} neighborhood (demo)`);
+      }
+    }
+
+    // Display optimized route order (simple order here)
+    document.getElementById('salesResults').innerHTML = results.join('<br>');
+
+  } catch (error) {
+    console.error(error);
+    document.getElementById('salesResults').innerText =
