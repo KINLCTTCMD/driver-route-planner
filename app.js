@@ -41,6 +41,7 @@ async function calculateRoute() {
   if (!dest) { alert('Please enter a destination address'); return; }
 
   try {
+    console.log("Calculating route...");
     const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`);
     const geoData = await geoRes.json();
     if (!geoData || geoData.length === 0) { alert('Destination not found!'); return; }
@@ -67,7 +68,10 @@ async function calculateRoute() {
     markers.push(startMarker, destMarker);
 
     map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
-  } catch (error) { console.error(error); document.getElementById('routeResult').innerText = "Error calculating route."; }
+  } catch (error) {
+    console.error(error);
+    document.getElementById('routeResult').innerText = "Error calculating route.";
+  }
 }
 
 // ----------------------
@@ -95,7 +99,10 @@ function renderSuggestedAreas() {
     container.appendChild(div);
   });
 }
-renderSuggestedAreas();
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderSuggestedAreas();
+});
 
 // ----------------------
 // Sales Planner
@@ -110,6 +117,8 @@ async function findSales() {
 
   if (!city) { alert('Please enter a city or zip code'); return; }
 
+  console.log("Finding sales locations for", type, "in", city);
+
   try {
     const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
     const geoData = await geoRes.json();
@@ -120,10 +129,10 @@ async function findSales() {
 
     let overpassQuery = '', maxResults = 0;
     if (type === 'coffee') {
-      overpassQuery = `[out:json][timeout:25];node["office"](around:5000,${cityLat},${cityLon});way["building"="commercial"](around:5000,${cityLat},${cityLon});out center 20;`;
+      overpassQuery = `[out:json][timeout:25];node["office"](around:5000,${cityLat},${cityLon});out center 10;`;
       maxResults = 10;
     } else {
-      overpassQuery = `[out:json][timeout:25];way["landuse"="residential"](around:5000,${cityLat},${cityLon});out center 10;`;
+      overpassQuery = `[out:json][timeout:25];way["landuse"="residential"](around:5000,${cityLat},${cityLon});out center 5;`;
       maxResults = 3;
     }
 
@@ -139,85 +148,26 @@ async function findSales() {
       const lat = el.lat || (el.center && el.center.lat);
       const lon = el.lon || (el.center && el.center.lon);
       const name = el.tags && (el.tags.name || el.tags.building || el.tags.office) || "Unnamed location";
-      const addr = el.tags && (el.tags["addr:street"] ? el.tags["addr:street"] + (el.tags["addr:housenumber"] ? " " + el.tags["addr:housenumber"] : "") : "");
-      return {name, addr, lat, lon};
+      return {name, lat, lon};
     }).filter(s => s.lat && s.lon).slice(0, maxResults);
 
-    // Nearest-neighbor order
-    let current = {lat: startCoords[0], lon: startCoords[1]};
-    let remaining = [...stops];
-    let ordered = [];
-    while (remaining.length > 0) {
-      remaining.sort((a,b) => distanceBetween(current,a) - distanceBetween(current,b));
-      const next = remaining.shift();
-      ordered.push(next);
-      current = next;
-    }
-
-    // Add distance/time from start for each stop
-    for (let i = 0; i < ordered.length; i++) {
-      const s = ordered[i];
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${s.lon},${s.lat}?overview=false${avoidTolls ? '&exclude=toll' : ''}`;
-      const routeRes = await fetch(osrmUrl);
-      const routeData = await routeRes.json();
-      if (routeData.routes && routeData.routes.length > 0) {
-        const route = routeData.routes[0];
-        s.distanceMiles = (route.distance / 1000 * 0.621371).toFixed(1);
-        s.durationMin = Math.round(route.duration / 60);
-      } else {
-        s.distanceMiles = '-';
-        s.durationMin = '-';
-      }
-    }
-
-    // Build full route URL
-    let fullRouteUrl = `https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}`;
-    ordered.forEach(s => fullRouteUrl += `&destination=${s.lat},${s.lon}`);
-
-    // Display results and markers
-    document.getElementById('salesResults').innerHTML = ordered.map((s,i) => {
+    // Place markers and show in results
+    document.getElementById('salesResults').innerHTML = stops.map((s,i) => {
       const marker = L.marker([s.lat, s.lon], {icon: type === 'coffee' ? blueIcon() : orangeIcon()})
         .addTo(map)
-        .bindPopup(`${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min)<br>
-          <a href="https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${s.lat},${s.lon}" target="_blank">Navigate</a>`);
+        .bindPopup(`${i+1}. ${s.name}`);
       markers.push(marker);
-      return `${i+1}. ${s.name} ${s.addr ? '- ' + s.addr : ''} (${s.distanceMiles} mi, ${s.durationMin} min) - 
-        <a href="https://www.google.com/maps/dir/?api=1&origin=${startCoords[0]},${startCoords[1]}&destination=${s.lat},${s.lon}" target="_blank">Navigate</a>`;
+      return `${i+1}. ${s.name}`;
     }).join('<br>');
-
-    document.getElementById('salesResults').innerHTML += `<br><br><button onclick="window.open('${fullRouteUrl}', '_blank')">Navigate Full Route</button>`;
 
     const startMarker = L.marker([startCoords[0], startCoords[1]], {icon: greenIcon()}).addTo(map).bindPopup("Start").openPopup();
     markers.push(startMarker);
 
-    const polyCoords = ordered.map(s => [s.lat, s.lon]);
-    if (polyCoords.length > 0) {
-      salesLine = L.polyline([[startCoords[0], startCoords[1]], ...polyCoords], {
-        color: type === 'coffee' ? 'blue' : 'orange',
-        dashArray: '5,10'
-      }).addTo(map);
-    }
-
     map.fitBounds(L.featureGroup(markers).getBounds().pad(0.5));
-
   } catch (error) {
     console.error(error);
     document.getElementById('salesResults').innerText = `Error finding ${type} locations.`;
   }
-}
-
-// ----------------------
-// Helper: distance in km
-// ----------------------
-function distanceBetween(a,b) {
-  const R = 6371;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLon = (b.lon - a.lon) * Math.PI / 180;
-  const lat1 = a.lat * Math.PI / 180;
-  const lat2 = b.lat * Math.PI / 180;
-  const x = dLon * Math.cos((lat1+lat2)/2);
-  const y = dLat;
-  return Math.sqrt(x*x + y*y) * R;
 }
 
 // ----------------------
