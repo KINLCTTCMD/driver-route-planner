@@ -27,25 +27,31 @@
 <section id="route" class="tab">
   <h2>Fastest Route</h2>
 
-  <label>Starting Location</label>
-  <select id="startPoint">
-    <option value="28.630501,-81.459345">Lulu</option>
-    <option value="28.568188,-81.803157">Pupu</option>
-  </select>
+  <div class="form-group">
+    <label>Starting Location</label>
+    <select id="startPoint">
+      <option value="28.630501,-81.459345">Lulu</option>
+      <option value="28.568188,-81.803157">Pupu</option>
+    </select>
+  </div>
 
-  <label>Destination</label>
-  <input id="destination" placeholder="Paste address">
+  <div class="form-group">
+    <label>Destination</label>
+    <input id="destination" placeholder="Paste address">
+  </div>
 
-  <label class="checkbox">
-    <input type="checkbox" id="avoidTolls"> Avoid Tolls
-  </label>
+  <div class="form-group checkbox">
+    <label>
+      <input type="checkbox" id="avoidTolls"> Avoid Tolls
+    </label>
+  </div>
 
   <button class="primary" onclick="calculateRoute()">Get Route</button>
 
   <div id="routeResult" class="result"></div>
 
   <div id="routeActions" class="actions hidden">
-    <button onclick="openInMaps()">Open in Maps</button>
+    <button class="primary" onclick="openInMaps()">Open in Maps</button>
   </div>
 </section>
 
@@ -53,30 +59,35 @@
 <section id="sales" class="tab hidden">
   <h2>Sales Stops</h2>
 
-  <select id="salesType">
-    <option value="coffee">Travelin’ Tom’s Coffee</option>
-    <option value="ice">Kona Ice</option>
-  </select>
+  <div class="form-group">
+    <select id="salesType">
+      <option value="coffee">Travelin’ Tom’s Coffee</option>
+      <option value="ice">Kona Ice</option>
+    </select>
+  </div>
 
-  <input id="city" placeholder="City or Zip Code">
+  <div class="form-group">
+    <input id="city" placeholder="City or Zip Code">
+  </div>
 
   <button class="primary" onclick="findSales()">Build Route</button>
 
-  <div id="salesResults"></div>
+  <div id="salesResults" class="result"></div>
 
-  <button id="nextStopBtn" class="primary hidden" onclick="navigateNextStop()">
-    Navigate Next Stop
-  </button>
+  <button id="nextStopBtn" class="primary hidden">Navigate Next Stop</button>
 </section>
 
 <!-- EVENTS -->
 <section id="events" class="tab hidden">
   <h2>Events</h2>
 
-  <input id="eventZip" placeholder="Zip Code">
+  <div class="form-group">
+    <input id="eventZip" placeholder="Zip Code">
+  </div>
+
   <button class="primary" onclick="findEvents()">Find Events</button>
 
-  <div id="eventResults"></div>
+  <div id="eventResults" class="result"></div>
 </section>
 
 </main>
