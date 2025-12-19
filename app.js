@@ -64,38 +64,35 @@ function findSales() {
 
   if (!city) return alert("Enter city or zip");
 
-  // DEMO STOPS (replace later with smarter logic)
   salesStops = type === "coffee"
-    ? [
-        "Starbucks Distribution Apopka FL",
-        "AdventHealth Apopka",
-        "Lowes Distribution Center Apopka",
-        "Office Park Apopka FL"
-      ]
-    : [
-        "Neighborhood Apopka FL",
-        "Community Park Apopka FL",
-        "Elementary School Area Apopka FL"
-      ];
+    ? ["Starbucks Apopka FL","AdventHealth Apopka","Lowes Apopka","Office Park Apopka FL"]
+    : ["Neighborhood Apopka FL","Community Park Apopka FL","Elementary School Apopka FL"];
 
   document.getElementById('salesResults').innerHTML =
-    salesStops.map((s, i) => `${i + 1}. ${s}`).join("<br>");
+    salesStops.map((s, i) => `${i+1}. ${s}`).join("<br>");
 
   document.getElementById('nextStopBtn').classList.remove('hidden');
 }
 
-// ---------- NEXT STOP ----------
 function navigateNextStop() {
   if (currentStopIndex >= salesStops.length) {
     alert("All stops completed!");
     return;
   }
-
   const stop = salesStops[currentStopIndex];
   currentStopIndex++;
+  window.open(`https://www.google.com/maps/search/${encodeURIComponent(stop)}`, "_blank");
+}
 
-  window.open(
-    `https://www.google.com/maps/search/${encodeURIComponent(stop)}`,
-    "_blank"
-  );
+// ---------- EVENTS ----------
+function findEvents() {
+  const zip = document.getElementById('eventZip').value;
+  if (!zip) return alert("Enter zip code");
+
+  document.getElementById('eventResults').innerHTML = `
+    <strong>Food Truck-Friendly Events</strong><br><br>
+    <a href="https://www.eventbrite.com/d/united-states--${zip}/festival/" target="_blank">Festivals</a><br>
+    <a href="https://www.eventbrite.com/d/united-states--${zip}/music/" target="_blank">Concerts</a><br>
+    <a href="https://www.eventbrite.com/d/united-states--${zip}/holiday/" target="_blank">Holiday Events</a><br>
+  `;
 }
