@@ -86,13 +86,16 @@ function navigateNextStop() {
 
 // ---------- EVENTS ----------
 function findEvents() {
-  const zip = document.getElementById('eventZip').value;
+  const zip = document.getElementById('eventZip').value.trim();
   if (!zip) return alert("Enter zip code");
 
+  const searchQuery = encodeURIComponent(`${zip} events`);
+  const googleUrl = `https://www.google.com/search?q=${searchQuery}`;
+
+  window.open(googleUrl, "_blank");
+
   document.getElementById('eventResults').innerHTML = `
-    <strong>Food Truck-Friendly Events</strong><br><br>
-    <a href="https://www.eventbrite.com/d/united-states--${zip}/festival/" target="_blank">Festivals</a><br>
-    <a href="https://www.eventbrite.com/d/united-states--${zip}/music/" target="_blank">Concerts</a><br>
-    <a href="https://www.eventbrite.com/d/united-states--${zip}/holiday/" target="_blank">Holiday Events</a><br>
+    <p>Click to view upcoming events in <strong>${zip}</strong>:</p>
+    <a href="${googleUrl}" target="_blank">View Events on Google</a>
   `;
 }
