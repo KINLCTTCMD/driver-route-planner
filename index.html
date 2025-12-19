@@ -2,81 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Driver Route Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 </head>
+
 <body>
-  <div class="container">
-    <h1>Driver Route Planner</h1>
+<div class="container">
+  <h1>Driver Route Planner</h1>
 
-    <div class="tabs">
-      <button onclick="showTab('route')">Route Planner</button>
-      <button onclick="showTab('sales')">Sales Planner</button>
-    </div>
-
-    <!-- Route Planner Tab -->
-    <div id="route" class="tab">
-      <h2>Fastest Route</h2>
-
-      <label>Starting Location</label>
-      <select id="startPoint">
-        <option value="28.630501,-81.459345">Lulu</option>
-        <option value="28.568188,-81.803157">Pupu</option>
-      </select>
-
-      <label>Destination Address</label>
-      <input id="destination" placeholder="Paste address here">
-
-      <label>
-        <input type="checkbox" id="avoidTollsRoute">
-        Avoid Tolls
-      </label>
-
-      <button onclick="calculateRoute()">Get Route</button>
-
-      <div id="routeResult"></div>
-    </div>
-
-    <!-- Sales Planner Tab -->
-    <div id="sales" class="tab hidden">
-      <h2>Sales Suggestions</h2>
-
-      <label>Starting Location</label>
-      <select id="startPointSales">
-        <option value="28.630501,-81.459345">Lulu</option>
-        <option value="28.568188,-81.803157">Pupu</option>
-      </select>
-
-      <label>Sales Type</label>
-      <select id="salesType">
-        <option value="coffee">Travelin' Tom's Coffee</option>
-        <option value="ice">Kona Ice</option>
-      </select>
-
-      <label>City or Zip Code</label>
-      <input id="city" placeholder="City or Zip Code">
-
-      <label>
-        <input type="checkbox" id="avoidTollsSales">
-        Avoid Tolls
-      </label>
-
-      <button onclick="findSales()">Find Locations</button>
-
-      <div>
-        <h4>Suggested Areas:</h4>
-        <div id="suggestedAreas"></div>
-      </div>
-
-      <div id="salesResults"></div>
-    </div>
-
-    <div id="map" style="height: 500px; margin-top: 20px;"></div>
+  <div class="tabs">
+    <button onclick="showTab('route')">Route Planner</button>
+    <button onclick="showTab('sales')">Sales Planner</button>
   </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+  <!-- ROUTE PLANNER -->
+  <div id="route" class="tab">
+    <h2>Fastest Route</h2>
+
+    <label>Starting Location</label>
+    <select id="startPoint">
+      <option value="28.630501,-81.459345">Lulu</option>
+      <option value="28.568188,-81.803157">Pupu</option>
+    </select>
+
+    <label>Destination Address</label>
+    <input id="destination" placeholder="Paste address here">
+
+    <label>
+      <input type="checkbox" id="avoidTolls">
+      Avoid Tolls
+    </label>
+
+    <button onclick="calculateRoute()">Get Route</button>
+    <div id="routeResult"></div>
+  </div>
+
+  <!-- SALES PLANNER -->
+  <div id="sales" class="tab hidden">
+    <h2>Sales Suggestions</h2>
+
+    <select id="salesType">
+      <option value="coffee">Travelin’ Tom’s Coffee</option>
+      <option value="ice">Kona Ice</option>
+    </select>
+
+    <input id="city" placeholder="City or Zip Code">
+
+    <button onclick="findSales()">Find Best Stops</button>
+
+    <div id="salesResults"></div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
