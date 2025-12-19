@@ -1,25 +1,13 @@
-// ----------------------
-// MAP SETUP
-// ----------------------
-let map = L.map('map').setView([28.630501, -81.459345], 11);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
+let map = L.map('map').setView([28.63, -81.46], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let markers = [];
 let routeLine = null;
 
-// ----------------------
-// UTILITIES
-// ----------------------
 function clearMap() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
-  if (routeLine) {
-    map.removeLayer(routeLine);
-    routeLine = null;
-  }
+  if (routeLine) map.removeLayer(routeLine);
 }
 
 function showTab(tab) {
@@ -27,9 +15,7 @@ function showTab(tab) {
   document.getElementById(tab).classList.remove('hidden');
 }
 
-// ----------------------
-// ROUTE PLANNER
-// ----------------------
+// ---------------- ROUTE PLANNER ----------------
 async function calculateRoute() {
   clearMap();
 
@@ -37,109 +23,87 @@ async function calculateRoute() {
   const dest = document.getElementById('destination').value;
   const avoidTolls = document.getElementById('avoidTolls').checked;
 
-  if (!dest) {
-    alert('Please enter a destination address');
-    return;
-  }
+  if (!dest) return alert("Enter a destination");
 
-  const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`);
-  const geoData = await geoRes.json();
+  const geo = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`
+  ).then(r => r.json());
 
-  if (!geoData.length) {
-    alert('Destination not found');
-    return;
-  }
+  if (!geo.length) return alert("Destination not found");
 
-  const destCoords = [parseFloat(geoData[0].lat), parseFloat(geoData[0].lon)];
+  const end = [geo[0].lat, geo[0].lon];
 
-  const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${destCoords[1]},${destCoords[0]}?overview=full${avoidTolls ? '&exclude=toll' : ''}`;
+  const osrm = await fetch(
+    `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full${avoidTolls ? '&exclude=toll' : ''}`
+  ).then(r => r.json());
 
-  const routeRes = await fetch(osrmUrl);
-  const routeData = await routeRes.json();
-
-  const route = routeData.routes[0];
+  const route = osrm.routes[0];
   const miles = (route.distance / 1000 * 0.621371).toFixed(1);
-  const minutes = Math.round(route.duration / 60);
+  const mins = Math.round(route.duration / 60);
 
   document.getElementById('routeResult').innerText =
-    `Fastest route: ${miles} miles · ${minutes} minutes`;
+    `${miles} miles · ${mins} minutes`;
 
   const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-  routeLine = L.polyline(coords, { color: 'blue' }).addTo(map);
-
-  markers.push(
-    L.marker(start, { icon: greenIcon() }).addTo(map).bindPopup("Start"),
-    L.marker(destCoords, { icon: blueIcon() }).addTo(map).bindPopup("Destination")
-  );
-
-  map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+  routeLine = L.polyline(coords).addTo(map);
+  map.fitBounds(routeLine.getBounds());
 }
 
-// ----------------------
-// SALES PLANNER (NO API – RELIABLE)
-// ----------------------
+// ---------------- SALES PLANNER ----------------
 function findSales() {
   clearMap();
 
   const type = document.getElementById('salesType').value;
-  const city = document.getElementById('city').value;
 
-  if (!city) {
-    alert("Enter a city or zip code");
-    return;
-  }
+  const candidates = type === "coffee"
+    ? coffeeCandidates()
+    : iceCandidates();
 
-  // Preset smart locations (demo logic)
-  const locations = type === 'coffee'
-    ? [
-        { name: "Downtown Business District", lat: 28.8025, lon: -81.6445 },
-        { name: "Medical Offices", lat: 28.8102, lon: -81.6531 },
-        { name: "Office Park", lat: 28.7953, lon: -81.6672 }
-      ]
-    : [
-        { name: "Elementary School Zone", lat: 28.8051, lon: -81.6501 },
-        { name: "City Park", lat: 28.7902, lon: -81.6404 },
-        { name: "Residential Neighborhood", lat: 28.8153, lon: -81.6608 }
-      ];
+  candidates.sort((a, b) => b.score - a.score);
 
-  document.getElementById('salesResults').innerHTML =
-    `<strong>Suggested ${type === 'coffee' ? "Coffee" : "Kona Ice"} Stops:</strong><br><br>`;
+  const results = candidates.slice(0, type === "coffee" ? 5 : 3);
+  let html = "<h3>Best Stops</h3>";
 
-  locations.forEach((loc, i) => {
-    const marker = L.marker([loc.lat, loc.lon], {
-      icon: type === 'coffee' ? blueIcon() : orangeIcon()
-    }).addTo(map).bindPopup(`${i + 1}. ${loc.name}`);
+  results.forEach((loc, i) => {
+    html += `${i + 1}. ${loc.name}
+      <div class="score">Score: ${loc.score}</div>
+      <small>${loc.reason}</small><br><br>`;
 
-    markers.push(marker);
-    document.getElementById('salesResults').innerHTML += `${i + 1}. ${loc.name}<br>`;
+    const m = L.marker([loc.lat, loc.lon]).addTo(map);
+    markers.push(m);
   });
 
-  map.fitBounds(L.featureGroup(markers).getBounds(), { padding: [50, 50] });
+  document.getElementById('salesResults').innerHTML = html;
+  map.fitBounds(L.featureGroup(markers).getBounds());
 }
 
-// ----------------------
-// ICONS
-// ----------------------
-function blueIcon() {
-  return L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  });
+// --------- SCORING LOGIC ----------
+function coffeeCandidates() {
+  return [
+    score("Medical Office Cluster", 28.79, -81.64, 88,
+      "Medical + office businesses, steady staff"),
+    score("Warehouse District", 28.82, -81.66, 82,
+      "Large workforce, parking available"),
+    score("Office Park", 28.80, -81.67, 79,
+      "Multiple companies in one stop"),
+    score("Downtown Business Area", 28.76, -81.64, 75,
+      "Foot traffic and visibility"),
+    score("Government Offices", 28.78, -81.63, 73,
+      "Consistent weekday demand")
+  ];
 }
 
-function orangeIcon() {
-  return L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  });
+function iceCandidates() {
+  return [
+    score("Large Subdivision Loop", 28.81, -81.65, 86,
+      "Dense neighborhood, good looping"),
+    score("School + Park Zone", 28.80, -81.62, 81,
+      "Kids traffic, after school"),
+    score("Residential Sports Area", 28.83, -81.67, 78,
+      "Parks and weekend activity")
+  ];
 }
 
-function greenIcon() {
-  return L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  });
+function score(name, lat, lon, value, reason) {
+  return { name, lat, lon, score: value, reason };
 }
