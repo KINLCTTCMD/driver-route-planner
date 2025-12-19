@@ -19,6 +19,7 @@
   <div class="tabs">
     <button onclick="showTab('route')">Route Planner</button>
     <button onclick="showTab('sales')">Sales Planner</button>
+    <button onclick="showTab('events')">Events Finder</button>
   </div>
 
   <!-- ROUTE PLANNER -->
@@ -53,10 +54,19 @@
     </select>
 
     <input id="city" placeholder="City or Zip Code">
-
     <button onclick="findSales()">Find Best Stops</button>
 
     <div id="salesResults"></div>
+  </div>
+
+  <!-- EVENTS FINDER -->
+  <div id="events" class="tab hidden">
+    <h2>Food Truck Events (Next 4 Months)</h2>
+
+    <input id="eventZip" placeholder="Zip Code">
+    <button onclick="findEvents()">Find Food Truck Events</button>
+
+    <div id="eventResults"></div>
   </div>
 
   <div id="map"></div>
