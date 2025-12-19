@@ -23,17 +23,25 @@ async function calculateRoute() {
 
   if (!dest) return alert("Enter destination");
 
+  // Geocode destination
   const geo = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`
   ).then(r => r.json());
 
   if (!geo.length) return alert("Address not found");
 
-  const end = [geo[0].lat, geo[0].lon];
+  const endLat = parseFloat(geo[0].lat);
+  const endLon = parseFloat(geo[0].lon);
 
+  // OSRM route
   const route = await fetch(
-    `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full${avoidTolls ? '&exclude=toll' : ''}`
+    `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${endLon},${endLat}?overview=full${avoidTolls ? '&exclude=toll' : ''}`
   ).then(r => r.json());
+
+  if (!route.routes || route.routes.length === 0) {
+    alert("Route not found!");
+    return;
+  }
 
   const r = route.routes[0];
   const miles = (r.distance / 1000 * 0.621371).toFixed(1);
@@ -42,16 +50,20 @@ async function calculateRoute() {
   document.getElementById('routeResult').innerText =
     `${miles} miles · ${mins} minutes`;
 
-  const coords = r.geometry.coordinates.map(c => [c[1], c[0]]);
-  routeLine = L.polyline(coords).addTo(map);
+  // Draw route on map
+  const coords = r.geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
+  routeLine = L.polyline(coords, {color: '#4f46e5', weight: 5}).addTo(map);
   map.fitBounds(routeLine.getBounds());
 
-  document.getElementById('routeActions').classList.remove('hidden');
+  // Show Google Maps link
+  const gMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${start[0]},${start[1]}&destination=${endLat},${endLon}&travelmode=driving`;
+  const actionsDiv = document.getElementById('routeActions');
+  actionsDiv.classList.remove('hidden');
+  actionsDiv.querySelector('button').onclick = () => window.open(gMapsUrl, "_blank");
 }
 
 function openInMaps() {
-  const dest = document.getElementById('destination').value;
-  window.open(`https://www.google.com/maps/search/${encodeURIComponent(dest)}`, "_blank");
+  document.getElementById('routeActions').querySelector('button').click();
 }
 
 // ---------- SALES ----------
@@ -64,9 +76,10 @@ function findSales() {
 
   if (!city) return alert("Enter city or zip");
 
+  // Demo stops; replace with actual logic or API as needed
   salesStops = type === "coffee"
-    ? ["Starbucks Apopka FL","AdventHealth Apopka","Lowes Apopka","Office Park Apopka FL"]
-    : ["Neighborhood Apopka FL","Community Park Apopka FL","Elementary School Apopka FL"];
+    ? ["Starbucks " + city, "AdventHealth " + city, "Lowes " + city, "Office Park " + city]
+    : ["Neighborhood " + city, "Community Park " + city, "Elementary School " + city];
 
   document.getElementById('salesResults').innerHTML =
     salesStops.map((s, i) => `${i+1}. ${s}`).join("<br>");
