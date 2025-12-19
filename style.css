@@ -19,6 +19,7 @@ h1 {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
 button {
@@ -44,4 +45,8 @@ input, select {
 .score {
   font-weight: bold;
   color: #2c7be5;
+}
+
+.event {
+  margin-bottom: 14px;
 }
