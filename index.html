@@ -4,72 +4,74 @@
   <meta charset="UTF-8">
   <title>Driver Route Planner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="style.css">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 
 <body>
-<div class="container">
+<div class="app">
+
+<header>
   <h1>Driver Route Planner</h1>
+</header>
 
-  <div class="tabs">
-    <button onclick="showTab('route')">Route Planner</button>
-    <button onclick="showTab('sales')">Sales Planner</button>
-    <button onclick="showTab('events')">Events Finder</button>
+<nav class="tabs">
+  <button class="active" onclick="showTab('route', this)">Route</button>
+  <button onclick="showTab('sales', this)">Sales</button>
+</nav>
+
+<main class="card">
+
+<!-- ROUTE -->
+<section id="route" class="tab">
+  <h2>Fastest Route</h2>
+
+  <label>Starting Location</label>
+  <select id="startPoint">
+    <option value="28.630501,-81.459345">Lulu</option>
+    <option value="28.568188,-81.803157">Pupu</option>
+  </select>
+
+  <label>Destination</label>
+  <input id="destination" placeholder="Paste address">
+
+  <label class="checkbox">
+    <input type="checkbox" id="avoidTolls"> Avoid Tolls
+  </label>
+
+  <button class="primary" onclick="calculateRoute()">Get Route</button>
+
+  <div id="routeResult" class="result"></div>
+
+  <div id="routeActions" class="actions hidden">
+    <button onclick="openInMaps()">Open in Maps</button>
   </div>
+</section>
 
-  <!-- ROUTE PLANNER -->
-  <div id="route" class="tab">
-    <h2>Fastest Route</h2>
+<!-- SALES -->
+<section id="sales" class="tab hidden">
+  <h2>Sales Stops</h2>
 
-    <label>Starting Location</label>
-    <select id="startPoint">
-      <option value="28.630501,-81.459345">Lulu</option>
-      <option value="28.568188,-81.803157">Pupu</option>
-    </select>
+  <select id="salesType">
+    <option value="coffee">Travelin’ Tom’s Coffee</option>
+    <option value="ice">Kona Ice</option>
+  </select>
 
-    <label>Destination Address</label>
-    <input id="destination" placeholder="Paste address here">
+  <input id="city" placeholder="City or Zip Code">
 
-    <label>
-      <input type="checkbox" id="avoidTolls">
-      Avoid Tolls
-    </label>
+  <button class="primary" onclick="findSales()">Build Route</button>
 
-    <button onclick="calculateRoute()">Get Route</button>
-    <div id="routeResult"></div>
-  </div>
+  <div id="salesResults"></div>
 
-  <!-- SALES PLANNER -->
-  <div id="sales" class="tab hidden">
-    <h2>Sales Suggestions</h2>
+  <button id="nextStopBtn" class="primary hidden" onclick="navigateNextStop()">
+    Navigate Next Stop
+  </button>
+</section>
 
-    <select id="salesType">
-      <option value="coffee">Travelin’ Tom’s Coffee</option>
-      <option value="ice">Kona Ice</option>
-    </select>
+</main>
 
-    <input id="city" placeholder="City or Zip Code">
-    <button onclick="findSales()">Find Best Stops</button>
+<div id="map"></div>
 
-    <div id="salesResults"></div>
-  </div>
-
-  <!-- EVENTS FINDER -->
-  <div id="events" class="tab hidden">
-    <h2>Food Truck Events (Next 4 Months)</h2>
-
-    <input id="eventZip" placeholder="Zip Code">
-    <button onclick="findEvents()">Find Food Truck Events</button>
-
-    <div id="eventResults"></div>
-  </div>
-
-  <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
