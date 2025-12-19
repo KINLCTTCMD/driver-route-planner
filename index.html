@@ -18,6 +18,7 @@
 <nav class="tabs">
   <button class="active" onclick="showTab('route', this)">Route</button>
   <button onclick="showTab('sales', this)">Sales</button>
+  <button onclick="showTab('events', this)">Events</button>
 </nav>
 
 <main class="card">
@@ -66,6 +67,16 @@
   <button id="nextStopBtn" class="primary hidden" onclick="navigateNextStop()">
     Navigate Next Stop
   </button>
+</section>
+
+<!-- EVENTS -->
+<section id="events" class="tab hidden">
+  <h2>Food Truck Events (Next 4 Months)</h2>
+
+  <input id="eventZip" placeholder="Zip Code">
+  <button class="primary" onclick="findEvents()">Find Events</button>
+
+  <div id="eventResults"></div>
 </section>
 
 </main>
