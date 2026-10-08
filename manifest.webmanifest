@@ -1,0 +1,1 @@
+{"name":"Driver Route Planner","short_name":"Route Planner","description":"Food truck routes, locations and events","start_url":"./","scope":"./","display":"standalone","background_color":"#eaf1f8","theme_color":"#163b68","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
